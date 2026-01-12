@@ -3,6 +3,7 @@ import {
   StateGraph,
   START,
   END,
+  MemorySaver,
 } from "@langchain/langgraph";
 import { ChatGroq } from "@langchain/groq";
 import dotenv from "dotenv";
@@ -11,6 +12,8 @@ import { TavilySearch } from "@langchain/tavily";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 
 dotenv.config();
+
+const checkpointer = new MemorySaver();
 
 const webSearchTool = new TavilySearch({
   topic: "general",
@@ -44,7 +47,7 @@ const workflow = new StateGraph(MessagesAnnotation)
   .addEdge("tools", "agent")
   .addConditionalEdges("agent", shouldContinue);
 
-const app = workflow.compile();
+const app = workflow.compile({ checkpointer });
 
 const main = async (id = "1") => {
   const rl = readline.createInterface({
@@ -79,7 +82,7 @@ const main = async (id = "1") => {
           { role: "user", content: user_query },
         ],
       },
-      { configurable: { threadId: id } }
+      { configurable: { thread_id: id } }
     );
 
     const lastMessage = result.messages[result.messages.length - 1];
